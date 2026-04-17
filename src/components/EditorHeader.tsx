@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -15,13 +15,14 @@ import { useDiagram } from '@/contexts/DiagramContext';
 import { ExportDialog } from '@/components/ExportDialog';
 import { ShareLinkDialog } from '@/components/ShareLinkDialog';
 import { SaveAsTemplateDialog } from '@/components/SaveAsTemplateDialog';
+import { GTBTemplateImporterDialog } from '@/components/GTBTemplateImporterDialog';
 import { TagManager } from '@/components/TagManager';
 import { useDiagramTagsForDiagram } from '@/hooks/useDiagramTags';
-import { 
-  ChevronLeft, 
-  Save, 
-  Copy, 
-  Trash2, 
+import {
+  ChevronLeft,
+  Save,
+  Copy,
+  Trash2,
   MoreHorizontal,
   PenLine,
   Settings,
@@ -30,7 +31,8 @@ import {
   FileUp,
   Check,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Building2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -39,6 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 interface EditorHeaderProps {
@@ -47,22 +50,23 @@ interface EditorHeaderProps {
 }
 
 export const EditorHeader = ({ onBack, canvasRef }: EditorHeaderProps) => {
-  const { 
-    currentDiagram, 
-    saveDiagram, 
-    duplicateDiagram, 
+  const {
+    currentDiagram,
+    saveDiagram,
+    duplicateDiagram,
     deleteDiagram,
     updateDiagramName,
     saveStatus,
   } = useDiagram();
-  
+
   const { data: diagramTags = [], refetch: refetchTags } = useDiagramTagsForDiagram(currentDiagram?.id);
-  
+
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
+  const [isGTBImporterOpen, setIsGTBImporterOpen] = useState(false);
 
   if (!currentDiagram) return null;
 
@@ -94,9 +98,9 @@ export const EditorHeader = ({ onBack, canvasRef }: EditorHeaderProps) => {
 
   return (
     <header className="h-14 bg-card border-b border-border flex items-center px-4 gap-4">
-      <Button 
-        variant="ghost" 
-        size="sm" 
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={onBack}
         className="gap-2"
       >
@@ -118,7 +122,6 @@ export const EditorHeader = ({ onBack, canvasRef }: EditorHeaderProps) => {
         >
           <PenLine className="h-3.5 w-3.5" />
         </Button>
-        {/* Save status indicator */}
         <div className="flex items-center gap-1.5 text-xs">
           {saveStatus === 'saved' && (
             <span className="flex items-center gap-1 text-muted-foreground">
@@ -146,7 +149,6 @@ export const EditorHeader = ({ onBack, canvasRef }: EditorHeaderProps) => {
         </div>
       </div>
 
-      {/* Tags section */}
       <div className="ml-4">
         <TagManager
           diagramId={currentDiagram.id}
@@ -158,20 +160,38 @@ export const EditorHeader = ({ onBack, canvasRef }: EditorHeaderProps) => {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setIsShareOpen(true)} 
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsGTBImporterOpen(true)}
+              className="gap-2 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+            >
+              <Building2 className="h-4 w-4" />
+              Templates GTB
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Importer une architecture GTB SCorp-io pré-configurée
+          </TooltipContent>
+        </Tooltip>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsShareOpen(true)}
           className="gap-2"
         >
           <Share2 className="h-4 w-4" />
           Partager
         </Button>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setIsExportOpen(true)} 
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsExportOpen(true)}
           className="gap-2"
         >
           <FileDown className="h-4 w-4" />
@@ -206,7 +226,7 @@ export const EditorHeader = ({ onBack, canvasRef }: EditorHeaderProps) => {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={handleDelete}
               className="text-destructive focus:text-destructive"
             >
@@ -246,20 +266,25 @@ export const EditorHeader = ({ onBack, canvasRef }: EditorHeaderProps) => {
         </DialogContent>
       </Dialog>
 
-      <ExportDialog 
-        open={isExportOpen} 
+      <ExportDialog
+        open={isExportOpen}
         onOpenChange={setIsExportOpen}
         canvasRef={canvasRef}
       />
 
-      <ShareLinkDialog 
-        open={isShareOpen} 
+      <ShareLinkDialog
+        open={isShareOpen}
         onOpenChange={setIsShareOpen}
       />
 
       <SaveAsTemplateDialog
         open={isSaveTemplateOpen}
         onOpenChange={setIsSaveTemplateOpen}
+      />
+
+      <GTBTemplateImporterDialog
+        open={isGTBImporterOpen}
+        onOpenChange={setIsGTBImporterOpen}
       />
     </header>
   );
