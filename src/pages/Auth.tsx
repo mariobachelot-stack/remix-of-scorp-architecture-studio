@@ -233,8 +233,8 @@ export default function Auth() {
                     </Button>
                     
                     <p className="text-xs text-center text-muted-foreground">
-                      Les nouveaux comptes sont créés avec un accès en lecture seule. 
-                      Un administrateur peut vous attribuer des droits d'édition.
+                      Inscription libre — accès immédiat sans vérification email.
+                      Vous pourrez créer votre propre organisation à la première connexion.
                     </p>
                   </form>
                 </TabsContent>
