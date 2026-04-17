@@ -1,39 +1,87 @@
 
 
 ## Objectif
-Permettre à Claude.AI (ou n'importe qui) de créer un compte et accéder à l'app immédiatement, sans vérification d'email ni invitation préalable.
+Quand l'utilisateur crée un nouveau schéma (Dashboard → "Nouveau"), pouvoir importer directement un schéma JSON produit par Claude.AI, en plus des options existantes "Canevas vide" et "Choisir un template".
 
-## Ce qui change
+## Comportement utilisateur
 
-**1. Activer l'auto-confirmation des emails**
-Configurer l'authentification Supabase pour que les nouveaux comptes soient confirmés automatiquement à l'inscription. Plus besoin de cliquer sur un lien dans un email — le signup connecte directement l'utilisateur.
+```text
+Dashboard
+  ↓ clic "Nouveau"
+TemplatePickerDialog
+  ├─ [Canevas vide]
+  ├─ [Importer un JSON]  ← NOUVEAU
+  └─ [Utiliser ce template]
+```
 
-**2. Garder le signup ouvert**
-Le formulaire d'inscription dans `src/pages/Auth.tsx` est déjà ouvert à tous. Je vérifie qu'il n'y a aucun blocage côté UI (pas de liste blanche, pas de code d'invitation requis).
+Sur clic "Importer un JSON" :
+1. Ouvre le sélecteur de fichier (`.json`).
+2. Lit le fichier, valide le contenu.
+3. Pré-remplit le dialog "Créer le schéma" avec le nom + description du JSON.
+4. À la création, le schéma est créé avec equipment / connections / zones / settings issus du JSON → ouvre l'éditeur.
 
-**3. Onboarding fluide pour le nouveau compte**
-Aujourd'hui, un nouvel utilisateur atterrit dans l'organisation par défaut "Aucune" et est forcé de créer/rejoindre une org via `OnboardingFlow`. C'est OK : Claude pourra créer sa propre org en un clic et devenir `owner` de celle-ci → il aura tous les droits d'édition, library admin, gestion users, etc.
+Si le JSON est invalide → toast d'erreur clair avec ce qui manque.
 
-**4. (Optionnel) Bannière d'info sur la page Auth**
-Ajouter une petite mention "Inscription libre — créez un compte en 10 secondes" pour que ce soit clair que rien ne bloque.
+## Format JSON attendu
+
+Strictement le même format que les templates (déjà supporté par `createDiagram`) :
+
+```json
+{
+  "name": "Mon archi GTB",
+  "description": "Optionnel",
+  "equipment": [ /* CanvasEquipment[] */ ],
+  "connections": [ /* Connection[] */ ],
+  "zones": [ /* Zone[] */ ],
+  "settings": { /* DiagramSettings, optionnel */ },
+  "images": [ /* optionnel */ ],
+  "texts":  [ /* optionnel */ ]
+}
+```
+
+Bonus : on accepte aussi un export JSON déjà fait via `ExportDialog` (même structure) → l'utilisateur peut ré-importer un schéma exporté.
+
+## Validation
+
+- Champ `name` requis (string non vide). Sinon on demande un nom dans le dialog suivant.
+- `equipment`, `connections`, `zones` : tableaux (vides acceptés).
+- Chaque `equipment[i]` doit avoir `canvasId`, `label`, `type`, `x`, `y`. Sinon → erreur listant le ou les éléments fautifs.
+- Si certains `canvasId` sont en doublon → on les régénère silencieusement avec `crypto.randomUUID()` et on remappe les références dans `connections` (`fromId`/`toId`).
 
 ## Détails techniques
 
-- **Supabase Auth** : passer `enable_confirmations` à `false` sur le provider email (via outil `configure_auth`).
-- **Aucune migration SQL nécessaire** : le trigger `handle_new_user` crée déjà profil + assignation à l'org par défaut automatiquement.
-- **RLS conservé** : chaque utilisateur reste isolé dans sa propre org. Claude ne verra pas vos données et vice-versa. C'est la bonne approche : bac à sable individuel.
-- **Pas de changement de code lourd** : juste un toggle de config + éventuellement la bannière sur `Auth.tsx`.
+**1. Nouveau composant `ImportJsonButton`** (intégré dans `TemplatePickerDialog`)
+- Input `<input type="file" accept=".json" hidden>` + bouton "Importer un JSON".
+- Lit le fichier via `FileReader` → `JSON.parse` → validation.
+- Appelle un nouveau callback `onImportJson(parsed)` exposé par `TemplatePickerDialog`.
 
-## Ce qui ne change PAS
-- Vos données existantes restent privées (RLS par org).
-- Le système de rôles owner/org_admin/member reste intact.
-- L'auto-save, l'éditeur, l'admin équipement, tout fonctionne pareil.
+**2. Modif `TemplatePickerDialog`**
+- Ajout prop `onImportJson?: (data: ImportedDiagram) => void`.
+- Ajout d'un 3ᵉ bouton "Importer un JSON" dans le `DialogFooter`.
+- Petit hint sous les boutons : "Vous pouvez importer un schéma généré par Claude.AI ou un export JSON existant."
 
-## Avertissement
-Avec le signup ouvert + auto-confirm, n'importe qui sur internet peut créer un compte si l'URL fuite. Chaque nouveau compte consomme un peu de quota Lovable Cloud (DB rows, storage si export d'images). À surveiller si l'URL devient publique.
+**3. Modif `Dashboard.tsx`**
+- Nouveau handler `handleImportJson(data)` :
+  - Pré-remplit `newName`, `newDescription`.
+  - Stocke le payload dans un nouveau state `importedPayload` (à la place de `selectedTemplate`).
+  - Ouvre le dialog "Créer le schéma" pour confirmation du nom.
+- Dans `handleCreate`, si `importedPayload` est présent → appelle `createDiagram(name, desc, userId, importedPayload as DiagramTemplate)` (le type est compatible — même shape).
+
+**4. Pas de changement DB ni de migration**
+La fonction `createDiagram` du contexte accepte déjà un `template` avec `equipment / connections / zones / settings`. On réutilise tel quel.
+
+**5. Petit utilitaire `src/lib/diagramImport.ts`**
+- `parseImportedDiagram(raw: unknown)` → renvoie `{ ok: true, data } | { ok: false, errors: string[] }`.
+- Gère la dédup des `canvasId` + remappage des connexions.
+
+## Ce qui ne change pas
+- L'import GTB (`GTBTemplateImporterDialog`) reste intact.
+- Les templates utilisateurs restent intacts.
+- L'éditeur, l'auto-save, le RBAC : aucun impact.
 
 ## Plan d'exécution
-1. Activer l'auto-confirmation email via `configure_auth`.
-2. Vérifier/ajuster `src/pages/Auth.tsx` pour clarifier le message d'inscription.
-3. Vous tester le flow : créer un compte test → arrivée sur onboarding → création d'org → accès à l'éditeur.
+1. Créer `src/lib/diagramImport.ts` (parsing + validation + dédup).
+2. Modifier `TemplatePickerDialog.tsx` : ajout bouton "Importer un JSON" + input file caché + prop callback.
+3. Modifier `Dashboard.tsx` : nouveau state `importedPayload`, handler `handleImportJson`, branchement dans `handleCreate`.
+4. Vous testez : générer un JSON via Claude.AI (ou ré-utiliser un export existant), cliquer "Nouveau" → "Importer un JSON" → vérifier que le schéma s'ouvre avec tous les équipements/connexions.
 
