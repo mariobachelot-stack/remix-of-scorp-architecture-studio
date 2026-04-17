@@ -1,39 +1,39 @@
 
-# Home View — Filtering, Sorting & Search Improvements
 
-## 1. Filter Bar Component (`FilterBar.tsx`)
-- Barre de filtres persistante sous la toolbar avec 4 dropdowns :
-  - **Étiquettes** : multi-select des tags org (chips colorés)
-  - **Créé par** : multi-select des créateurs (extraits des schémas existants)
-  - **Modifié** : presets temporels (Aujourd'hui, Cette semaine, Ce mois-ci, Ce trimestre, Personnalisé avec date picker)
-  - **Dossier** : multi-select des dossiers org + option "Sans dossier"
-- Bouton "Réinitialiser" visible seulement quand un filtre est actif
-- Chaque filtre actif affiche un compteur `(N)`
+## Objectif
+Permettre à Claude.AI (ou n'importe qui) de créer un compte et accéder à l'app immédiatement, sans vérification d'email ni invitation préalable.
 
-## 2. Active Filter Chips
-- Ligne de chips sous la filter bar quand des filtres sont actifs
-- Chaque chip affiche l'icône + le nom du filtre + ✕ pour suppression individuelle
+## Ce qui change
 
-## 3. URL Persistence
-- Stocker l'état des filtres dans les query params (`?tags=id1,id2&createdBy=name&modified=month&folder=id`)
-- Initialiser les filtres depuis l'URL au chargement
-- `useSearchParams` de react-router-dom
+**1. Activer l'auto-confirmation des emails**
+Configurer l'authentification Supabase pour que les nouveaux comptes soient confirmés automatiquement à l'inscription. Plus besoin de cliquer sur un lien dans un email — le signup connecte directement l'utilisateur.
 
-## 4. Sortable Columns
-- Headers cliquables : Nom, Éléments, Créé par, Modifié
-- Indicateur flèche ↑↓ sur la colonne active
-- Tri par défaut : Modifié (plus récent en premier)
-- Appliquer le tri aux schémas dans chaque dossier ET aux root
+**2. Garder le signup ouvert**
+Le formulaire d'inscription dans `src/pages/Auth.tsx` est déjà ouvert à tous. Je vérifie qu'il n'y a aucun blocage côté UI (pas de liste blanche, pas de code d'invitation requis).
 
-## 5. Enhanced Search
-- Recherche étendue : nom du schéma, nom du dossier, étiquettes, créateur
-- État "Aucun résultat" amélioré avec bouton "Réinitialiser la recherche"
+**3. Onboarding fluide pour le nouveau compte**
+Aujourd'hui, un nouvel utilisateur atterrit dans l'organisation par défaut "Aucune" et est forcé de créer/rejoindre une org via `OnboardingFlow`. C'est OK : Claude pourra créer sa propre org en un clic et devenir `owner` de celle-ci → il aura tous les droits d'édition, library admin, gestion users, etc.
 
-## Fichiers modifiés
-- `src/components/Dashboard.tsx` — refactoring majeur des filtres/tri
-- `src/components/FilterBar.tsx` — nouveau composant
-- `src/components/ActiveFilterChips.tsx` — nouveau composant
+**4. (Optionnel) Bannière d'info sur la page Auth**
+Ajouter une petite mention "Inscription libre — créez un compte en 10 secondes" pour que ce soit clair que rien ne bloque.
 
-## Ordre d'exécution
-1. Créer `FilterBar.tsx` et `ActiveFilterChips.tsx`
-2. Refactorer `Dashboard.tsx` : remplacer les filtres actuels, ajouter le tri, URL params
+## Détails techniques
+
+- **Supabase Auth** : passer `enable_confirmations` à `false` sur le provider email (via outil `configure_auth`).
+- **Aucune migration SQL nécessaire** : le trigger `handle_new_user` crée déjà profil + assignation à l'org par défaut automatiquement.
+- **RLS conservé** : chaque utilisateur reste isolé dans sa propre org. Claude ne verra pas vos données et vice-versa. C'est la bonne approche : bac à sable individuel.
+- **Pas de changement de code lourd** : juste un toggle de config + éventuellement la bannière sur `Auth.tsx`.
+
+## Ce qui ne change PAS
+- Vos données existantes restent privées (RLS par org).
+- Le système de rôles owner/org_admin/member reste intact.
+- L'auto-save, l'éditeur, l'admin équipement, tout fonctionne pareil.
+
+## Avertissement
+Avec le signup ouvert + auto-confirm, n'importe qui sur internet peut créer un compte si l'URL fuite. Chaque nouveau compte consomme un peu de quota Lovable Cloud (DB rows, storage si export d'images). À surveiller si l'URL devient publique.
+
+## Plan d'exécution
+1. Activer l'auto-confirmation email via `configure_auth`.
+2. Vérifier/ajuster `src/pages/Auth.tsx` pour clarifier le message d'inscription.
+3. Vous tester le flow : créer un compte test → arrivée sur onboarding → création d'org → accès à l'éditeur.
+
