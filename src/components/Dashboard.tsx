@@ -100,6 +100,7 @@ export const Dashboard = ({ onOpenEditor }: DashboardProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DiagramTemplate | null>(null);
+  const [importedPayload, setImportedPayload] = useState<import('@/lib/diagramImport').ImportedDiagram | null>(null);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
@@ -379,8 +380,17 @@ export const Dashboard = ({ onOpenEditor }: DashboardProps) => {
 
   const handleTemplateSelected = (template: DiagramTemplate | null) => {
     setSelectedTemplate(template);
+    setImportedPayload(null);
     setNewName(template?.name || '');
     setNewDescription(template?.description || '');
+    setIsCreating(true);
+  };
+
+  const handleImportJson = (data: import('@/lib/diagramImport').ImportedDiagram) => {
+    setImportedPayload(data);
+    setSelectedTemplate(null);
+    setNewName(data.name || '');
+    setNewDescription(data.description || '');
     setIsCreating(true);
   };
 
@@ -388,11 +398,20 @@ export const Dashboard = ({ onOpenEditor }: DashboardProps) => {
     if (!canEdit || !newName.trim()) return;
     setIsSubmitting(true);
     try {
-      await createDiagram(newName.trim(), newDescription.trim() || undefined, user?.id, selectedTemplate || undefined);
+      const templateLike = importedPayload
+        ? ({
+            equipment: importedPayload.equipment,
+            connections: importedPayload.connections,
+            zones: importedPayload.zones,
+            settings: importedPayload.settings,
+          } as DiagramTemplate)
+        : selectedTemplate || undefined;
+      await createDiagram(newName.trim(), newDescription.trim() || undefined, user?.id, templateLike);
       setIsCreating(false);
       setNewName('');
       setNewDescription('');
       setSelectedTemplate(null);
+      setImportedPayload(null);
       onOpenEditor();
     } finally { setIsSubmitting(false); }
   };
@@ -1207,7 +1226,7 @@ export const Dashboard = ({ onOpenEditor }: DashboardProps) => {
         </DialogContent>
       </Dialog>
 
-      <TemplatePickerDialog open={showTemplatePicker} onOpenChange={setShowTemplatePicker} onSelectTemplate={handleTemplateSelected} />
+      <TemplatePickerDialog open={showTemplatePicker} onOpenChange={setShowTemplatePicker} onSelectTemplate={handleTemplateSelected} onImportJson={handleImportJson} />
       <FolderDialog open={showFolderDialog} onOpenChange={setShowFolderDialog} folder={editingFolder || undefined} organizationId={userOrgId} />
     </div>
   );

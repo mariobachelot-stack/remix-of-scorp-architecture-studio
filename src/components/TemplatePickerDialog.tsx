@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { parseImportedDiagram, ImportedDiagram } from '@/lib/diagramImport';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useDiagramTemplates, DiagramTemplate } from '@/hooks/useDiagramTemplates';
-import { Box, FileJson, Trash2, LayoutTemplate } from 'lucide-react';
+import { Box, FileJson, Trash2, LayoutTemplate, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -30,17 +32,48 @@ interface TemplatePickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectTemplate: (template: DiagramTemplate | null) => void;
+  onImportJson?: (data: ImportedDiagram) => void;
 }
 
 export const TemplatePickerDialog = ({
   open,
   onOpenChange,
   onSelectTemplate,
+  onImportJson,
 }: TemplatePickerDialogProps) => {
   const { templates, isLoading, deleteTemplate } = useDiagramTemplates();
   const { isAdmin } = useAuthContext();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [templateToDelete, setTemplateToDelete] = useState<DiagramTemplate | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const raw = JSON.parse(text);
+      const result = parseImportedDiagram(raw);
+      if (!result.ok) {
+        toast.error('Fichier JSON invalide', {
+          description: result.errors.slice(0, 3).join(' • '),
+        });
+        return;
+      }
+      onImportJson?.(result.data);
+      onOpenChange(false);
+      setSelectedId(null);
+    } catch (err) {
+      toast.error('Impossible de lire le fichier', {
+        description: err instanceof Error ? err.message : 'JSON malformé',
+      });
+    }
+  };
 
   const handleConfirm = () => {
     if (selectedId) {
@@ -160,10 +193,26 @@ export const TemplatePickerDialog = ({
             )}
           </ScrollArea>
 
+          <p className="text-xs text-muted-foreground">
+            Vous pouvez aussi importer un schéma JSON généré par Claude.AI ou un export existant.
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleFileChange}
+          />
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={handleCreateEmpty} className="flex-1 sm:flex-none">
               Canevas vide
             </Button>
+            {onImportJson && (
+              <Button variant="outline" onClick={handleImportClick} className="flex-1 sm:flex-none">
+                <Upload className="h-4 w-4 mr-2" />
+                Importer un JSON
+              </Button>
+            )}
             <Button
               onClick={handleConfirm}
               disabled={!selectedId}
