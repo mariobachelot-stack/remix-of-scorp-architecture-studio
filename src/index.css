@@ -1,0 +1,219 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* SCorp-io Professional Theme */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Deep professional blue */
+    --primary: 217 91% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Slate secondary */
+    --secondary: 215 20% 95%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted slate */
+    --muted: 215 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Teal accent for connections/highlights */
+    --accent: 172 66% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 25% 90%;
+    --input: 215 25% 90%;
+    --ring: 217 91% 40%;
+
+    --radius: 0.5rem;
+
+    /* Canvas specific */
+    --canvas-bg: 210 20% 97%;
+    --canvas-grid: 215 25% 88%;
+    --canvas-equipment: 0 0% 100%;
+    --canvas-equipment-border: 215 25% 85%;
+    
+    /* Connection colors by protocol */
+    --connection-modbus: 217 91% 50%;
+    --connection-bacnet: 142 76% 36%;
+    --connection-lon: 25 95% 53%;
+    --connection-cloud: 172 66% 40%;
+
+    /* Equipment type colors */
+    --equipment-terminal: 215 25% 96%;
+    --equipment-automate: 217 91% 96%;
+    --equipment-interface: 172 66% 94%;
+    --equipment-cloud: 262 83% 96%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 215 25% 92%;
+    --sidebar-ring: 217 91% 40%;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 50%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 172 66% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 55%;
+
+    --canvas-bg: 222 47% 7%;
+    --canvas-grid: 217 33% 15%;
+    --canvas-equipment: 222 47% 10%;
+    --canvas-equipment-border: 217 33% 20%;
+
+    --sidebar-background: 222 47% 7%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 15%;
+    --sidebar-ring: 217 91% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .equipment-card {
+    @apply bg-card border border-border rounded-lg p-3 cursor-grab 
+           transition-all duration-200 hover:shadow-md hover:border-primary/30
+           active:cursor-grabbing;
+  }
+
+  .canvas-container {
+    @apply bg-canvas rounded-lg border border-border overflow-hidden;
+    background-image: 
+      linear-gradient(hsl(var(--canvas-grid)) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--canvas-grid)) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .connection-line {
+    @apply stroke-2 fill-none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .protocol-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .protocol-modbus {
+    @apply bg-blue-100 text-blue-700;
+  }
+
+  .protocol-bacnet {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .protocol-lon {
+    @apply bg-orange-100 text-orange-700;
+  }
+
+  .protocol-cloud {
+    @apply bg-teal-100 text-teal-700;
+  }
+}
+
+@layer utilities {
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  .scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideInRight {
+    from { 
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from { 
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
